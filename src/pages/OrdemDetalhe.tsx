@@ -6,6 +6,7 @@ import { OS_STATUS_FLOW } from "@/types";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ArrowLeft, ChevronRight, XCircle, Clock, User, Bike, Wrench, Ruler } from "lucide-react";
+import { PrintOSButton } from "@/components/PrintOS";
 
 export default function OrdemDetalhe() {
   const { id } = useParams();
@@ -42,6 +43,7 @@ export default function OrdemDetalhe() {
           </div>
         </div>
         <div className="flex gap-2">
+          <PrintOSButton os={os} cliente={cliente} />
           {canAdvance && (
             <Button onClick={handleAdvance} className="gap-2">
               <ChevronRight className="h-4 w-4" /> Avançar Etapa
