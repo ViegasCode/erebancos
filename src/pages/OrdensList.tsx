@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAppData } from "@/context/AppContext";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatCurrency, formatDate } from "@/lib/formatters";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Search, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -62,7 +62,8 @@ export default function OrdensList() {
               <th className="px-5 py-3 font-medium">Cliente</th>
               <th className="px-5 py-3 font-medium">Moto</th>
               <th className="px-5 py-3 font-medium">Tipo</th>
-              <th className="px-5 py-3 font-medium">Valor</th>
+              <th className="px-5 py-3 font-medium">Total</th>
+              <th className="px-5 py-3 font-medium">Local</th>
               <th className="px-5 py-3 font-medium">Previsão</th>
               <th className="px-5 py-3 font-medium">Status</th>
             </tr>
@@ -76,14 +77,15 @@ export default function OrdensList() {
                   <td className="px-5 py-3">{cliente?.nome ?? "—"}</td>
                   <td className="px-5 py-3">{os.marca} {os.modelo}</td>
                   <td className="px-5 py-3">{os.tipo}</td>
-                  <td className="px-5 py-3 font-medium">{formatCurrency(os.valor)}</td>
+                  <td className="px-5 py-3 font-medium">{formatCurrency(os.total_venda)}</td>
+                  <td className="px-5 py-3 text-xs">{os.local_compra}</td>
                   <td className="px-5 py-3">{formatDate(os.data_previsao)}</td>
                   <td className="px-5 py-3"><StatusBadge status={os.status} /></td>
                 </tr>
               );
             })}
             {filtered.length === 0 && (
-              <tr><td colSpan={7} className="px-5 py-8 text-center text-muted-foreground">Nenhuma OS encontrada</td></tr>
+              <tr><td colSpan={8} className="px-5 py-8 text-center text-muted-foreground">Nenhuma OS encontrada</td></tr>
             )}
           </tbody>
         </table>

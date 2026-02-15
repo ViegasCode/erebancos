@@ -16,13 +16,11 @@ function OSFicha({ os, cliente, copy, total }: PrintOSProps & { copy: number; to
   return (
     <div className="print-ficha" style={{ pageBreakAfter: copy < total ? "always" : "auto" }}>
       <div style={{ border: "2px solid #1e3a5f", borderRadius: 8, padding: 24, fontFamily: "Arial, sans-serif", color: "#1a1a1a", maxWidth: 720, margin: "0 auto" }}>
-        {/* Header */}
         <div style={{ textAlign: "center", borderBottom: "2px solid #1e3a5f", paddingBottom: 12, marginBottom: 16 }}>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "#1e3a5f", margin: 0 }}>ERÊ BANCOS</h1>
           <p style={{ fontSize: 11, color: "#666", margin: "4px 0 0" }}>Bancos Customizados para Motos</p>
         </div>
 
-        {/* OS Info */}
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16, fontSize: 13 }}>
           <div><strong>OS Nº:</strong> {os.numero_os}</div>
           <div><strong>Data:</strong> {formatDate(os.created_at)}</div>
@@ -30,7 +28,6 @@ function OSFicha({ os, cliente, copy, total }: PrintOSProps & { copy: number; to
           <div><strong>Status:</strong> {os.status}</div>
         </div>
 
-        {/* Cliente */}
         <div style={{ background: "#f5f7fa", borderRadius: 6, padding: 12, marginBottom: 12 }}>
           <h3 style={{ fontSize: 13, fontWeight: 700, color: "#1e3a5f", margin: "0 0 8px" }}>CLIENTE</h3>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 16px", fontSize: 12 }}>
@@ -41,7 +38,6 @@ function OSFicha({ os, cliente, copy, total }: PrintOSProps & { copy: number; to
           </div>
         </div>
 
-        {/* Moto */}
         <div style={{ background: "#f5f7fa", borderRadius: 6, padding: 12, marginBottom: 12 }}>
           <h3 style={{ fontSize: 13, fontWeight: 700, color: "#1e3a5f", margin: "0 0 8px" }}>MOTO</h3>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "4px 16px", fontSize: 12 }}>
@@ -52,19 +48,34 @@ function OSFicha({ os, cliente, copy, total }: PrintOSProps & { copy: number; to
           </div>
         </div>
 
-        {/* Serviço */}
         <div style={{ background: "#f5f7fa", borderRadius: 6, padding: 12, marginBottom: 12 }}>
-          <h3 style={{ fontSize: 13, fontWeight: 700, color: "#1e3a5f", margin: "0 0 8px" }}>SERVIÇO</h3>
-          <div style={{ fontSize: 12, marginBottom: 8 }}><strong>Descrição:</strong> {os.descricao}</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4px 16px", fontSize: 12 }}>
+          <h3 style={{ fontSize: 13, fontWeight: 700, color: "#1e3a5f", margin: "0 0 8px" }}>SERVIÇOS</h3>
+          {os.servicos.map((srv, i) => (
+            <div key={i} style={{ fontSize: 12, marginBottom: 6, paddingBottom: 4, borderBottom: i < os.servicos.length - 1 ? "1px solid #ddd" : "none" }}>
+              <div><strong>Serviço {i + 1}:</strong> {srv.descricao}</div>
+              {srv.material && <div style={{ color: "#666" }}>Material: {srv.material}</div>}
+            </div>
+          ))}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4px 16px", fontSize: 12, marginTop: 8 }}>
             <div><strong>Tipo:</strong> {os.tipo}</div>
-            <div><strong>Material:</strong> {os.material || "—"}</div>
             <div><strong>Vendedor:</strong> {os.vendedor}</div>
-            <div><strong>Valor:</strong> {formatCurrency(os.valor)}</div>
+            <div><strong>Local:</strong> {os.local_compra}{os.influencer ? ` (${os.influencer})` : ""}</div>
           </div>
         </div>
 
-        {/* Dados Técnicos */}
+        <div style={{ background: "#f5f7fa", borderRadius: 6, padding: 12, marginBottom: 12 }}>
+          <h3 style={{ fontSize: 13, fontWeight: 700, color: "#1e3a5f", margin: "0 0 8px" }}>PAGAMENTO</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "4px 16px", fontSize: 12 }}>
+            <div><strong>Valor:</strong> {formatCurrency(os.valor)}</div>
+            <div><strong>Desconto:</strong> {formatCurrency(os.desconto)}</div>
+            <div><strong>Frete:</strong> {formatCurrency(os.frete)}</div>
+            <div><strong>Total:</strong> {formatCurrency(os.total_venda)}</div>
+          </div>
+          <div style={{ fontSize: 12, marginTop: 8 }}>
+            <strong>Formas:</strong> {os.pagamentos.map((p) => `${p.forma}: ${formatCurrency(p.valor)}`).join(" | ")}
+          </div>
+        </div>
+
         <div style={{ background: "#f5f7fa", borderRadius: 6, padding: 12, marginBottom: 16 }}>
           <h3 style={{ fontSize: 13, fontWeight: 700, color: "#1e3a5f", margin: "0 0 8px" }}>DADOS TÉCNICOS</h3>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr", gap: "4px 16px", fontSize: 12 }}>
@@ -76,7 +87,6 @@ function OSFicha({ os, cliente, copy, total }: PrintOSProps & { copy: number; to
           </div>
         </div>
 
-        {/* Footer */}
         <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #ddd", paddingTop: 16, fontSize: 11 }}>
           <div style={{ borderTop: "1px solid #333", paddingTop: 4, width: "45%", textAlign: "center" }}>Assinatura do Cliente</div>
           <div style={{ borderTop: "1px solid #333", paddingTop: 4, width: "45%", textAlign: "center" }}>Assinatura ERÊ Bancos</div>
@@ -161,7 +171,6 @@ export function PrintOSButton({ os, cliente }: PrintOSProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Hidden print content */}
       <div ref={printRef} className="hidden">
         {Array.from({ length: copies }, (_, i) => (
           <OSFicha key={i} os={os} cliente={cliente} copy={i + 1} total={copies} />

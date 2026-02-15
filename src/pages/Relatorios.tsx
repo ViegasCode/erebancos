@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { DollarSign, FileText, TrendingUp, Clock, Download } from "lucide-react";
+import { LOCAIS_COMPRA } from "@/types";
 
 export default function Relatorios() {
   const { ordens } = useAppData();
@@ -15,6 +16,8 @@ export default function Relatorios() {
   const [fim, setFim] = useState("2025-12-31");
   const [vendedor, setVendedor] = useState("todos");
   const [statusFilter, setStatusFilter] = useState("todos");
+  const [localFilter, setLocalFilter] = useState("todos");
+  const [influencerFilter, setInfluencerFilter] = useState("");
 
   const vendedores = [...new Set(ordens.map((o) => o.vendedor))];
 
@@ -23,15 +26,17 @@ export default function Relatorios() {
       if (o.created_at < inicio || o.created_at > fim + "T23:59:59") return false;
       if (vendedor !== "todos" && o.vendedor !== vendedor) return false;
       if (statusFilter !== "todos" && o.status !== statusFilter) return false;
+      if (localFilter !== "todos" && o.local_compra !== localFilter) return false;
+      if (localFilter === "Influencer" && influencerFilter && o.influencer && !o.influencer.toLowerCase().includes(influencerFilter.toLowerCase())) return false;
       return true;
     });
-  }, [ordens, inicio, fim, vendedor, statusFilter]);
+  }, [ordens, inicio, fim, vendedor, statusFilter, localFilter, influencerFilter]);
 
-  const totalFaturado = filtered.filter((o) => o.status !== "Cancelada").reduce((s, o) => s + o.valor, 0);
+  const totalFaturado = filtered.filter((o) => o.status !== "Cancelada").reduce((s, o) => s + o.total_venda, 0);
   const qtdOS = filtered.length;
   const ticketMedio = qtdOS > 0 ? totalFaturado / qtdOS : 0;
 
-  const finalizadas = filtered.filter((o) => ["Finalizada", "Entregue"].includes(o.status));
+  const finalizadas = filtered.filter((o) => o.status === "Finalizado");
   const tempoMedio = finalizadas.length > 0
     ? finalizadas.reduce((s, o) => {
         const diff = new Date(o.updated_at).getTime() - new Date(o.created_at).getTime();
@@ -40,8 +45,11 @@ export default function Relatorios() {
     : 0;
 
   const exportCSV = () => {
-    const headers = "Nº OS,Cliente ID,Marca,Modelo,Tipo,Valor,Vendedor,Status,Data Criação,Previsão\n";
-    const rows = filtered.map((o) => `${o.numero_os},${o.cliente_id},${o.marca},${o.modelo},${o.tipo},${o.valor},${o.vendedor},${o.status},${o.created_at},${o.data_previsao}`).join("\n");
+    const headers = "Nº OS,Cliente ID,Marca,Modelo,Tipo,Valor,Desconto,Frete,Total,Pagamentos,Vendedor,Status,Local Compra,Influencer,Data Criação,Previsão\n";
+    const rows = filtered.map((o) => {
+      const pags = o.pagamentos.map((p) => `${p.forma}:${p.valor}`).join("|");
+      return `${o.numero_os},${o.cliente_id},${o.marca},${o.modelo},${o.tipo},${o.valor},${o.desconto},${o.frete},${o.total_venda},"${pags}",${o.vendedor},${o.status},${o.local_compra},${o.influencer || ""},${o.created_at},${o.data_previsao}`;
+    }).join("\n");
     const blob = new Blob([headers + rows], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -63,7 +71,7 @@ export default function Relatorios() {
 
       {/* Filters */}
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-        <div className="grid gap-4 sm:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div><Label>Data Início</Label><Input type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} /></div>
           <div><Label>Data Fim</Label><Input type="date" value={fim} onChange={(e) => setFim(e.target.value)} /></div>
           <div>
@@ -82,12 +90,26 @@ export default function Relatorios() {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="Finalizada">Finalizada</SelectItem>
-                <SelectItem value="Entregue">Entregue</SelectItem>
+                <SelectItem value="Criada">Criada</SelectItem>
+                <SelectItem value="Em Teste">Em Teste</SelectItem>
+                <SelectItem value="Finalizado">Finalizado</SelectItem>
                 <SelectItem value="Cancelada">Cancelada</SelectItem>
               </SelectContent>
             </Select>
           </div>
+          <div>
+            <Label>Local de Compra</Label>
+            <Select value={localFilter} onValueChange={(v) => { setLocalFilter(v); if (v !== "Influencer") setInfluencerFilter(""); }}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {LOCAIS_COMPRA.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          {localFilter === "Influencer" && (
+            <div><Label>Nome do Influencer</Label><Input value={influencerFilter} onChange={(e) => setInfluencerFilter(e.target.value)} placeholder="Buscar influencer..." /></div>
+          )}
         </div>
       </div>
 
@@ -107,7 +129,8 @@ export default function Relatorios() {
               <th className="px-5 py-3 font-medium">OS</th>
               <th className="px-5 py-3 font-medium">Moto</th>
               <th className="px-5 py-3 font-medium">Vendedor</th>
-              <th className="px-5 py-3 font-medium">Valor</th>
+              <th className="px-5 py-3 font-medium">Total</th>
+              <th className="px-5 py-3 font-medium">Local</th>
               <th className="px-5 py-3 font-medium">Status</th>
             </tr>
           </thead>
@@ -117,7 +140,8 @@ export default function Relatorios() {
                 <td className="px-5 py-3 font-semibold text-primary">#{os.numero_os}</td>
                 <td className="px-5 py-3">{os.marca} {os.modelo}</td>
                 <td className="px-5 py-3">{os.vendedor}</td>
-                <td className="px-5 py-3 font-medium">{formatCurrency(os.valor)}</td>
+                <td className="px-5 py-3 font-medium">{formatCurrency(os.total_venda)}</td>
+                <td className="px-5 py-3 text-xs">{os.local_compra}{os.influencer ? ` (${os.influencer})` : ""}</td>
                 <td className="px-5 py-3"><span className="status-badge bg-muted text-muted-foreground">{os.status}</span></td>
               </tr>
             ))}
