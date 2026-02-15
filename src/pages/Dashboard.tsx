@@ -10,10 +10,10 @@ export default function Dashboard() {
 
   const hoje = new Date().toISOString().split("T")[0];
   const ordensHoje = getOrdensHoje();
-  const emProducao = ordens.filter((o) => !["Finalizada", "Entregue", "Cancelada", "Criada"].includes(o.status));
-  const finalizadasHoje = ordens.filter((o) => o.status === "Finalizada" && o.updated_at.startsWith(hoje));
-  const atrasadas = ordens.filter((o) => o.data_previsao < hoje && !["Finalizada", "Entregue", "Cancelada"].includes(o.status));
-  const faturamentoHoje = ordens.filter((o) => o.status === "Entregue" && o.updated_at.startsWith(hoje)).reduce((sum, o) => sum + o.valor, 0);
+  const emTeste = ordens.filter((o) => o.status === "Em Teste");
+  const finalizadasHoje = ordens.filter((o) => o.status === "Finalizado" && o.updated_at.startsWith(hoje));
+  const atrasadas = ordens.filter((o) => o.data_previsao < hoje && !["Finalizado", "Cancelada"].includes(o.status));
+  const faturamentoHoje = ordens.filter((o) => o.status === "Finalizado" && o.updated_at.startsWith(hoje)).reduce((sum, o) => sum + o.total_venda, 0);
 
   const recentes = [...ordens].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 5);
 
@@ -26,7 +26,7 @@ export default function Dashboard() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard title="OS do Dia" value={ordensHoje.length} icon={FileText} variant="default" />
-        <StatCard title="Em Produção" value={emProducao.length} icon={Factory} variant="accent" />
+        <StatCard title="Em Teste" value={emTeste.length} icon={Factory} variant="accent" />
         <StatCard title="Finalizadas Hoje" value={finalizadasHoje.length} icon={CheckCircle2} variant="success" />
         <StatCard title="Atrasadas" value={atrasadas.length} icon={AlertTriangle} variant="destructive" />
         <StatCard title="Faturamento Hoje" value={formatCurrency(faturamentoHoje)} icon={DollarSign} variant="success" />
@@ -45,7 +45,7 @@ export default function Dashboard() {
                 <th className="px-5 py-3 font-medium">OS</th>
                 <th className="px-5 py-3 font-medium">Cliente</th>
                 <th className="px-5 py-3 font-medium">Moto</th>
-                <th className="px-5 py-3 font-medium">Valor</th>
+                <th className="px-5 py-3 font-medium">Total</th>
                 <th className="px-5 py-3 font-medium">Previsão</th>
                 <th className="px-5 py-3 font-medium">Status</th>
               </tr>
@@ -60,7 +60,7 @@ export default function Dashboard() {
                     </td>
                     <td className="px-5 py-3">{cliente?.nome ?? "—"}</td>
                     <td className="px-5 py-3">{os.marca} {os.modelo}</td>
-                    <td className="px-5 py-3 font-medium">{formatCurrency(os.valor)}</td>
+                    <td className="px-5 py-3 font-medium">{formatCurrency(os.total_venda)}</td>
                     <td className="px-5 py-3">{formatDate(os.data_previsao)}</td>
                     <td className="px-5 py-3"><StatusBadge status={os.status} /></td>
                   </tr>

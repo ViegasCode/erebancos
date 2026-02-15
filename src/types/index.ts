@@ -1,27 +1,33 @@
 export type OSStatus =
   | "Criada"
-  | "Em Produção"
-  | "Em Corte"
-  | "Em Costura"
-  | "Em Montagem"
   | "Em Teste"
-  | "Finalizada"
-  | "Entregue"
+  | "Finalizado"
   | "Cancelada";
 
 export const OS_STATUS_FLOW: OSStatus[] = [
   "Criada",
-  "Em Produção",
-  "Em Corte",
-  "Em Costura",
-  "Em Montagem",
   "Em Teste",
-  "Finalizada",
-  "Entregue",
+  "Finalizado",
 ];
 
 export const OS_TIPOS = ["Teste", "Retirada", "Envio"] as const;
 export type OSTipo = (typeof OS_TIPOS)[number];
+
+export const LOCAIS_COMPRA = ["Instagram", "Mercado Livre", "Site", "Fisicamente", "Influencer"] as const;
+export type LocalCompra = (typeof LOCAIS_COMPRA)[number];
+
+export const FORMAS_PAGAMENTO = ["PIX", "Cartão de Crédito", "Cartão de Débito", "Dinheiro", "Boleto", "Transferência"] as const;
+export type FormaPagamento = (typeof FORMAS_PAGAMENTO)[number];
+
+export interface Servico {
+  descricao: string;
+  material: string;
+}
+
+export interface Pagamento {
+  forma: FormaPagamento;
+  valor: number;
+}
 
 export interface Cliente {
   id: string;
@@ -46,10 +52,15 @@ export interface OrdemServico {
   modelo: string;
   cilindrada: string;
   ano: string;
-  descricao: string;
+  servicos: Servico[];
   tipo: OSTipo;
-  material: string;
   valor: number;
+  desconto: number;
+  frete: number;
+  total_venda: number;
+  pagamentos: Pagamento[];
+  local_compra: LocalCompra;
+  influencer?: string;
   vendedor: string;
   peso_piloto?: string;
   altura_piloto?: string;

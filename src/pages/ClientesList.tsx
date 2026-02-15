@@ -21,7 +21,7 @@ export default function ClientesList() {
     return os[0];
   };
 
-  const getTotalGasto = (clienteId: string) => ordens.filter((o) => o.cliente_id === clienteId && o.status !== "Cancelada").reduce((s, o) => s + o.valor, 0);
+  const getTotalGasto = (clienteId: string) => ordens.filter((o) => o.cliente_id === clienteId && o.status !== "Cancelada").reduce((s, o) => s + o.total_venda, 0);
 
   return (
     <div className="space-y-6">

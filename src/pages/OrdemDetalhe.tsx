@@ -5,7 +5,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { OS_STATUS_FLOW } from "@/types";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { ArrowLeft, ChevronRight, XCircle, Clock, User, Bike, Wrench, Ruler } from "lucide-react";
+import { ArrowLeft, ChevronRight, XCircle, Clock, User, Bike, Wrench, Ruler, CreditCard, MapPin } from "lucide-react";
 import { PrintOSButton } from "@/components/PrintOS";
 
 export default function OrdemDetalhe() {
@@ -20,7 +20,7 @@ export default function OrdemDetalhe() {
   const hist = historico.filter((h) => h.os_id === os.id).sort((a, b) => b.data_hora.localeCompare(a.data_hora));
 
   const canAdvance = OS_STATUS_FLOW.indexOf(os.status) >= 0 && OS_STATUS_FLOW.indexOf(os.status) < OS_STATUS_FLOW.length - 1 && os.status !== "Cancelada";
-  const canCancel = os.status !== "Entregue" && os.status !== "Cancelada";
+  const canCancel = os.status !== "Finalizado" && os.status !== "Cancelada";
 
   const handleAdvance = () => {
     avancarStatus(os.id, "Operador");
@@ -100,30 +100,62 @@ export default function OrdemDetalhe() {
           </div>
         </div>
 
-        {/* Serviço */}
+        {/* Serviços */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <h3 className="flex items-center gap-2 font-semibold mb-3"><Wrench className="h-4 w-4 text-primary" /> Serviço</h3>
-          <div className="space-y-2 text-sm">
-            <p>{os.descricao}</p>
+          <h3 className="flex items-center gap-2 font-semibold mb-3"><Wrench className="h-4 w-4 text-primary" /> Serviços</h3>
+          <div className="space-y-3 text-sm">
+            {os.servicos.map((srv, i) => (
+              <div key={i} className="rounded-lg bg-muted/30 p-3">
+                <p className="font-medium">{srv.descricao}</p>
+                {srv.material && <p className="text-muted-foreground text-xs mt-1">Material: {srv.material}</p>}
+              </div>
+            ))}
             <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
               <div><span className="text-muted-foreground">Tipo:</span> {os.tipo}</div>
-              <div><span className="text-muted-foreground">Material:</span> {os.material || "—"}</div>
               <div><span className="text-muted-foreground">Vendedor:</span> {os.vendedor}</div>
-              <div><span className="text-muted-foreground">Valor:</span> <span className="font-semibold">{formatCurrency(os.valor)}</span></div>
               <div><span className="text-muted-foreground">Previsão:</span> {formatDate(os.data_previsao)}</div>
             </div>
           </div>
         </div>
 
-        {/* Dados Técnicos */}
+        {/* Pagamento */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+          <h3 className="flex items-center gap-2 font-semibold mb-3"><CreditCard className="h-4 w-4 text-primary" /> Pagamento</h3>
+          <div className="space-y-2 text-sm">
+            <div className="grid grid-cols-2 gap-2">
+              <div><span className="text-muted-foreground">Valor:</span> {formatCurrency(os.valor)}</div>
+              <div><span className="text-muted-foreground">Desconto:</span> {formatCurrency(os.desconto)}</div>
+              <div><span className="text-muted-foreground">Frete:</span> {formatCurrency(os.frete)}</div>
+              <div><span className="text-muted-foreground font-semibold">Total:</span> <span className="font-bold text-primary">{formatCurrency(os.total_venda)}</span></div>
+            </div>
+            <div className="pt-2 border-t border-border space-y-1">
+              <p className="text-muted-foreground text-xs font-medium">Formas de pagamento:</p>
+              {os.pagamentos.map((pg, i) => (
+                <div key={i} className="flex justify-between">
+                  <span>{pg.forma}</span>
+                  <span className="font-medium">{formatCurrency(pg.valor)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="pt-2 border-t border-border">
+              <div className="flex items-center gap-1">
+                <MapPin className="h-3 w-3 text-muted-foreground" />
+                <span className="text-muted-foreground">Local:</span> {os.local_compra}
+                {os.influencer && <span className="ml-1">({os.influencer})</span>}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Dados Técnicos */}
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm lg:col-span-2">
           <h3 className="flex items-center gap-2 font-semibold mb-3"><Ruler className="h-4 w-4 text-primary" /> Dados Técnicos</h3>
-          <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-sm">
             <div><span className="text-muted-foreground">Peso Piloto:</span> {os.peso_piloto || "—"}</div>
             <div><span className="text-muted-foreground">Altura Piloto:</span> {os.altura_piloto || "—"}</div>
             <div><span className="text-muted-foreground">Peso Garupa:</span> {os.peso_garupa || "—"}</div>
             <div><span className="text-muted-foreground">Altura Garupa:</span> {os.altura_garupa || "—"}</div>
-            <div className="col-span-2"><span className="text-muted-foreground">Cóccix:</span> {os.coccix || "Sem ajuste"}</div>
+            <div><span className="text-muted-foreground">Cóccix:</span> {os.coccix || "Sem ajuste"}</div>
           </div>
         </div>
       </div>

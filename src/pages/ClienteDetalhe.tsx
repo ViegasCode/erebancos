@@ -14,7 +14,7 @@ export default function ClienteDetalhe() {
   if (!cliente) return <div className="p-8 text-center text-muted-foreground">Cliente não encontrado</div>;
 
   const ordensCliente = getClienteOrdens(cliente.id);
-  const totalGasto = ordensCliente.filter((o) => o.status !== "Cancelada").reduce((s, o) => s + o.valor, 0);
+  const totalGasto = ordensCliente.filter((o) => o.status !== "Cancelada").reduce((s, o) => s + o.total_venda, 0);
 
   return (
     <div className="space-y-6">
@@ -75,7 +75,7 @@ export default function ClienteDetalhe() {
                 <tr key={os.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="px-5 py-3 font-semibold"><Link to={`/ordens/${os.id}`} className="text-primary hover:underline">#{os.numero_os}</Link></td>
                   <td className="px-5 py-3">{os.marca} {os.modelo}</td>
-                  <td className="px-5 py-3 font-medium">{formatCurrency(os.valor)}</td>
+                  <td className="px-5 py-3 font-medium">{formatCurrency(os.total_venda)}</td>
                   <td className="px-5 py-3">{formatDate(os.created_at)}</td>
                   <td className="px-5 py-3"><StatusBadge status={os.status} /></td>
                 </tr>
