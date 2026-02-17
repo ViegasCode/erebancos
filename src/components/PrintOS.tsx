@@ -12,92 +12,228 @@ interface PrintOSProps {
   cliente?: Cliente;
 }
 
-function OSFicha({ os, cliente, copy, total }: PrintOSProps & { copy: number; total: number }) {
+const cell: React.CSSProperties = { border: "1px solid #000", padding: "2px 6px", fontSize: 11 };
+const lbl: React.CSSProperties = { fontWeight: "bold", fontSize: 10 };
+const box: React.CSSProperties = { display: "inline-block", width: 13, height: 13, border: "1.5px solid #000", margin: "0 4px", verticalAlign: "middle" };
+const boxChecked: React.CSSProperties = { ...box, background: "#000" };
+
+function Chk({ checked }: { checked: boolean }) {
+  return <span style={checked ? boxChecked : box} />;
+}
+
+function FichaCompleta({ os, cliente }: PrintOSProps) {
   return (
-    <div className="print-ficha" style={{ pageBreakAfter: copy < total ? "always" : "auto" }}>
-      <div style={{ border: "2px solid #1e3a5f", borderRadius: 8, padding: 24, fontFamily: "Arial, sans-serif", color: "#1a1a1a", maxWidth: 720, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", borderBottom: "2px solid #1e3a5f", paddingBottom: 12, marginBottom: 16 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "#1e3a5f", margin: 0 }}>ERÊ BANCOS</h1>
-          <p style={{ fontSize: 11, color: "#666", margin: "4px 0 0" }}>Bancos Customizados para Motos</p>
-        </div>
+    <div style={{ fontFamily: "Arial, Helvetica, sans-serif", color: "#000", width: "100%", maxWidth: 720, margin: "0 auto" }}>
+      {/* Header */}
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <tbody>
+          <tr>
+            <td style={{ padding: "4px 8px", fontSize: 18, fontWeight: 900, letterSpacing: 2 }}>
+              ERÊ <span style={{ fontSize: 11, fontWeight: 400, letterSpacing: 0 }}>Equipamentos para veículos Automotores Ltda.</span>
+            </td>
+            <td style={{ textAlign: "right", padding: "4px 8px" }}>
+              <span style={{ fontSize: 11 }}>OS: </span>
+              <span style={{ fontSize: 26, fontWeight: 900, color: "#c00", letterSpacing: 2 }}>{os.numero_os}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16, fontSize: 13 }}>
-          <div><strong>OS Nº:</strong> {os.numero_os}</div>
-          <div><strong>Data:</strong> {formatDate(os.created_at)}</div>
-          <div><strong>Previsão:</strong> {formatDate(os.data_previsao)}</div>
-          <div><strong>Status:</strong> {os.status}</div>
-        </div>
+      {/* Client info */}
+      <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #000" }}>
+        <tbody>
+          <tr>
+            <td style={cell}><span style={lbl}>DATA:</span> {formatDate(os.created_at)}</td>
+            <td style={cell} colSpan={2}><span style={lbl}>NOME:</span> {cliente?.nome || "—"}</td>
+            <td style={cell}><span style={lbl}>TEL:</span> {cliente?.telefone || "—"}</td>
+          </tr>
+          <tr>
+            <td style={cell} colSpan={4}><span style={lbl}>END:</span> {cliente?.rua ? `${cliente.rua}, ${cliente.numero || "S/N"}` : "—"}</td>
+          </tr>
+          <tr>
+            <td style={cell}><span style={lbl}>BAIRRO:</span> {cliente?.bairro || "—"}</td>
+            <td style={cell}><span style={lbl}>CIDADE:</span> {cliente?.cidade || "—"}</td>
+            <td style={cell}><span style={lbl}>ESTADO:</span> {cliente?.estado || "—"}</td>
+            <td style={cell}><span style={lbl}>CEP:</span> {cliente?.cep || "—"}</td>
+          </tr>
+          <tr>
+            <td style={cell}><span style={lbl}>CPF:</span> {cliente?.cpf || "—"}</td>
+            <td style={cell}><span style={lbl}>PAGTO:</span> {os.pagamentos.map(p => `${p.forma}: ${formatCurrency(p.valor)}`).join(" / ")}</td>
+            <td style={cell} colSpan={2}><span style={lbl}>P/DIA:</span> {formatDate(os.data_previsao)}</td>
+          </tr>
+          <tr>
+            <td style={cell}><span style={lbl}>MARCA:</span> {os.marca}</td>
+            <td style={cell}><span style={lbl}>MOD:</span> {os.modelo}</td>
+            <td style={cell}><span style={lbl}>CILINDRADA:</span> {os.cilindrada || "—"}</td>
+            <td style={cell}><span style={lbl}>ANO:</span> {os.ano || "—"}</td>
+          </tr>
+        </tbody>
+      </table>
 
-        <div style={{ background: "#f5f7fa", borderRadius: 6, padding: 12, marginBottom: 12 }}>
-          <h3 style={{ fontSize: 13, fontWeight: 700, color: "#1e3a5f", margin: "0 0 8px" }}>CLIENTE</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 16px", fontSize: 12 }}>
-            <div><strong>Nome:</strong> {cliente?.nome || "—"}</div>
-            <div><strong>CPF:</strong> {cliente?.cpf || "—"}</div>
-            <div><strong>Telefone:</strong> {cliente?.telefone || "—"}</div>
-            <div><strong>Email:</strong> {cliente?.email || "—"}</div>
-          </div>
-        </div>
+      {/* Services header */}
+      <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #000", borderTop: "none" }}>
+        <tbody>
+          <tr>
+            <td style={{ ...cell, padding: "6px 8px", verticalAlign: "middle" }}>
+              <span style={{ fontSize: 16, fontWeight: 900, marginRight: 24 }}>SERVIÇOS</span>
+              <span style={{ fontSize: 11, marginRight: 12 }}>TESTE <Chk checked={os.tipo === "Teste"} /></span>
+              <span style={{ fontSize: 11, marginRight: 12 }}>RETIRADA <Chk checked={os.tipo === "Retirada"} /></span>
+              <span style={{ fontSize: 11 }}>ENVIO <Chk checked={os.tipo === "Envio"} /></span>
+            </td>
+            <td style={{ border: "1px solid #000", padding: "6px 8px", fontWeight: 900, fontSize: 13, textAlign: "center", width: 80 }}>VALOR</td>
+          </tr>
+        </tbody>
+      </table>
 
-        <div style={{ background: "#f5f7fa", borderRadius: 6, padding: 12, marginBottom: 12 }}>
-          <h3 style={{ fontSize: 13, fontWeight: 700, color: "#1e3a5f", margin: "0 0 8px" }}>MOTO</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "4px 16px", fontSize: 12 }}>
-            <div><strong>Marca:</strong> {os.marca}</div>
-            <div><strong>Modelo:</strong> {os.modelo}</div>
-            <div><strong>Cilindrada:</strong> {os.cilindrada || "—"}</div>
-            <div><strong>Ano:</strong> {os.ano || "—"}</div>
-          </div>
-        </div>
-
-        <div style={{ background: "#f5f7fa", borderRadius: 6, padding: 12, marginBottom: 12 }}>
-          <h3 style={{ fontSize: 13, fontWeight: 700, color: "#1e3a5f", margin: "0 0 8px" }}>SERVIÇOS</h3>
-          {os.servicos.map((srv, i) => (
-            <div key={i} style={{ fontSize: 12, marginBottom: 6, paddingBottom: 4, borderBottom: i < os.servicos.length - 1 ? "1px solid #ddd" : "none" }}>
-              <div><strong>Serviço {i + 1}:</strong> {srv.descricao}</div>
-              {srv.material && <div style={{ color: "#666" }}>Material: {srv.material}</div>}
-            </div>
+      {/* Services lines */}
+      <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #000", borderTop: "none" }}>
+        <tbody>
+          {Array.from({ length: Math.max(8, os.servicos.length) }, (_, i) => (
+            <tr key={i}>
+              <td style={{ border: "1px solid #ccc", borderLeft: "1px solid #000", borderRight: "none", padding: "3px 8px", fontSize: 11, height: 20 }}>
+                {os.servicos[i] ? `${os.servicos[i].descricao}${os.servicos[i].material ? ` — Material: ${os.servicos[i].material}` : ""}` : ""}
+              </td>
+              <td style={{ border: "1px solid #ccc", borderRight: "1px solid #000", borderLeft: "1px solid #000", padding: "3px 8px", fontSize: 11, width: 80, textAlign: "right" }}>
+                {i === 0 ? formatCurrency(os.valor) : ""}
+              </td>
+            </tr>
           ))}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4px 16px", fontSize: 12, marginTop: 8 }}>
-            <div><strong>Tipo:</strong> {os.tipo}</div>
-            <div><strong>Vendedor:</strong> {os.vendedor}</div>
-            <div><strong>Local:</strong> {os.local_compra}{os.influencer ? ` (${os.influencer})` : ""}</div>
-          </div>
-        </div>
+        </tbody>
+      </table>
 
-        <div style={{ background: "#f5f7fa", borderRadius: 6, padding: 12, marginBottom: 12 }}>
-          <h3 style={{ fontSize: 13, fontWeight: 700, color: "#1e3a5f", margin: "0 0 8px" }}>PAGAMENTO</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "4px 16px", fontSize: 12 }}>
-            <div><strong>Valor:</strong> {formatCurrency(os.valor)}</div>
-            <div><strong>Desconto:</strong> {formatCurrency(os.desconto)}</div>
-            <div><strong>Frete:</strong> {formatCurrency(os.frete)}</div>
-            <div><strong>Total:</strong> {formatCurrency(os.total_venda)}</div>
-          </div>
-          <div style={{ fontSize: 12, marginTop: 8 }}>
-            <strong>Formas:</strong> {os.pagamentos.map((p) => `${p.forma}: ${formatCurrency(p.valor)}`).join(" | ")}
-          </div>
-        </div>
+      {/* Bottom: technical data */}
+      <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #000", borderTop: "1px solid #000" }}>
+        <tbody>
+          <tr>
+            <td style={cell}><span style={lbl}>PILOTO: PESO</span> {os.peso_piloto || "—"}</td>
+            <td style={cell}><span style={lbl}>ALTURA</span> {os.altura_piloto || "—"}</td>
+            <td style={cell}><span style={lbl}>VENDEDOR</span> {os.vendedor}</td>
+            <td style={{ ...cell, fontWeight: 900, fontSize: 14, textAlign: "center" }} rowSpan={2}>
+              <span style={lbl}>TOTAL</span><br />{formatCurrency(os.total_venda)}
+            </td>
+          </tr>
+          <tr>
+            <td style={cell}><span style={lbl}>GARUPA: PESO</span> {os.peso_garupa || "—"}</td>
+            <td style={cell}><span style={lbl}>ALTURA</span> {os.altura_garupa || "—"}</td>
+            <td style={cell}><span style={lbl}>CÓCCIX</span> {os.coccix || "—"} &nbsp;<span style={lbl}>MATERIAL</span> {os.servicos[0]?.material || "—"}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
-        <div style={{ background: "#f5f7fa", borderRadius: 6, padding: 12, marginBottom: 16 }}>
-          <h3 style={{ fontSize: 13, fontWeight: 700, color: "#1e3a5f", margin: "0 0 8px" }}>DADOS TÉCNICOS</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr", gap: "4px 16px", fontSize: 12 }}>
-            <div><strong>Peso Piloto:</strong> {os.peso_piloto || "—"}</div>
-            <div><strong>Altura Piloto:</strong> {os.altura_piloto || "—"}</div>
-            <div><strong>Peso Garupa:</strong> {os.peso_garupa || "—"}</div>
-            <div><strong>Altura Garupa:</strong> {os.altura_garupa || "—"}</div>
-            <div><strong>Cóccix:</strong> {os.coccix || "Sem ajuste"}</div>
-          </div>
-        </div>
+function FichaResumida({ os, cliente }: PrintOSProps) {
+  return (
+    <div style={{ fontFamily: "Arial, Helvetica, sans-serif", color: "#000", width: "100%", maxWidth: 720, margin: "16px auto 0" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #000" }}>
+        <tbody>
+          <tr>
+            <td style={{ ...cell, padding: "6px 8px" }} colSpan={3}>
+              <span style={{ fontSize: 16, fontWeight: 900, marginRight: 20 }}>SERVIÇOS</span>
+              <span style={{ fontSize: 11, marginRight: 10 }}>TESTE <Chk checked={os.tipo === "Teste"} /></span>
+              <span style={{ fontSize: 11, marginRight: 10 }}>RETIRADA <Chk checked={os.tipo === "Retirada"} /></span>
+              <span style={{ fontSize: 11 }}>ENVIO <Chk checked={os.tipo === "Envio"} /></span>
+            </td>
+            <td style={{ ...cell, textAlign: "right", padding: "6px 8px" }}>
+              <span style={{ fontSize: 11 }}>OS: </span>
+              <span style={{ fontSize: 18, fontWeight: 900 }}>{os.numero_os}</span>
+            </td>
+          </tr>
+          <tr>
+            <td style={cell}><span style={lbl}>DATA:</span> {formatDate(os.created_at)}</td>
+            <td style={cell} colSpan={2}><span style={lbl}>NOME:</span> {cliente?.nome || "—"}</td>
+            <td style={cell}><span style={lbl}>TEL:</span> {cliente?.telefone || "—"}</td>
+          </tr>
+          <tr>
+            <td style={cell}><span style={lbl}>MARCA:</span> {os.marca}</td>
+            <td style={cell}><span style={lbl}>MOD:</span> {os.modelo}</td>
+            <td style={cell}><span style={lbl}>CILINDRADA:</span> {os.cilindrada || "—"}</td>
+            <td style={cell}><span style={lbl}>ANO:</span> {os.ano || "—"}</td>
+          </tr>
+          <tr>
+            <td style={cell} colSpan={3}>{os.servicos.map(s => s.descricao).join("; ")}</td>
+            <td style={cell}><span style={lbl}>P/DIA:</span> {formatDate(os.data_previsao)}</td>
+          </tr>
+        </tbody>
+      </table>
 
-        <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #ddd", paddingTop: 16, fontSize: 11 }}>
-          <div style={{ borderTop: "1px solid #333", paddingTop: 4, width: "45%", textAlign: "center" }}>Assinatura do Cliente</div>
-          <div style={{ borderTop: "1px solid #333", paddingTop: 4, width: "45%", textAlign: "center" }}>Assinatura ERÊ Bancos</div>
-        </div>
+      {/* Lines */}
+      <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #000", borderTop: "none" }}>
+        <tbody>
+          {Array.from({ length: Math.max(4, os.servicos.length) }, (_, i) => (
+            <tr key={i}>
+              <td style={{ border: "1px solid #ccc", borderLeft: "1px solid #000", borderRight: "1px solid #000", padding: "3px 8px", fontSize: 11, height: 18 }}>
+                {os.servicos[i] ? `${os.servicos[i].descricao}${os.servicos[i].material ? ` — ${os.servicos[i].material}` : ""}` : ""}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
-        {total > 1 && (
-          <div style={{ textAlign: "right", fontSize: 10, color: "#999", marginTop: 8 }}>
-            Via {copy} de {total}
-          </div>
-        )}
+      {/* Bottom */}
+      <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #000", borderTop: "1px solid #000" }}>
+        <tbody>
+          <tr>
+            <td style={cell}><span style={lbl}>PILOTO: PESO</span> {os.peso_piloto || "—"}</td>
+            <td style={cell}><span style={lbl}>ALTURA</span> {os.altura_piloto || "—"}</td>
+            <td style={cell}><span style={lbl}>VENDEDOR</span> {os.vendedor}</td>
+          </tr>
+          <tr>
+            <td style={cell}><span style={lbl}>GARUPA: PESO</span> {os.peso_garupa || "—"}</td>
+            <td style={cell}><span style={lbl}>ALTURA</span> {os.altura_garupa || "—"}</td>
+            <td style={cell}><span style={lbl}>CÓCCIX</span> {os.coccix || "—"} &nbsp;<span style={lbl}>MATERIAL</span> {os.servicos[0]?.material || "—"}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function FichaRecibo({ os, cliente }: PrintOSProps) {
+  return (
+    <div style={{ fontFamily: "Arial, Helvetica, sans-serif", color: "#000", width: "100%", maxWidth: 720, margin: "16px auto 0" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", border: "1px solid #000" }}>
+        <tbody>
+          <tr>
+            <td style={cell} colSpan={2}><span style={lbl}>NOME:</span> {cliente?.nome || "—"}</td>
+            <td style={{ ...cell, textAlign: "right" }} rowSpan={3}>
+              <span style={{ fontSize: 11 }}>OS: </span>
+              <span style={{ fontSize: 18, fontWeight: 900 }}>{os.numero_os}</span>
+            </td>
+          </tr>
+          <tr>
+            <td style={cell} colSpan={2}><span style={lbl}>TIPO DO PRODUTO:</span> {os.servicos.map(s => s.descricao).join("; ")}</td>
+          </tr>
+          <tr>
+            <td style={cell}><span style={lbl}>CONDIÇÕES DE PAGTO:</span> {os.pagamentos.map(p => `${p.forma}: ${formatCurrency(p.valor)}`).join(" / ")}</td>
+            <td style={cell}><span style={lbl}>VALOR TOTAL:</span> <span style={{ fontWeight: 900 }}>{formatCurrency(os.total_venda)}</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div style={{ textAlign: "center", fontSize: 10, padding: "4px 0", borderLeft: "1px solid #000", borderRight: "1px solid #000", borderBottom: "1px solid #000" }}>
+        ERÊ: Rua Francisco Manuel, 43 - Benfica - RJ - Tel: 3860-0157 / 3860-0106
       </div>
+      <div style={{ textAlign: "center", fontSize: 9, padding: "3px 0", borderLeft: "1px solid #000", borderRight: "1px solid #000", borderBottom: "1px solid #000", lineHeight: 1.4 }}>
+        <strong>NÃO ATENDEMOS NO HORÁRIO DAS 12:00 ÀS 13:00H - HORA DE ALMOÇO (de Segunda a sexta-feira)</strong><br />
+        Observação: As mercadorias não retiradas no prazo de noventa dias, a empresa não terá responsabilidade sobre a mesma.
+      </div>
+      <div style={{ textAlign: "center", fontSize: 10, padding: "4px 0", borderLeft: "1px solid #000", borderRight: "1px solid #000", borderBottom: "1px solid #000" }}>
+        <strong>📷 Erebancos / 📘 Erebancos / 📞 98880-2749</strong>
+      </div>
+    </div>
+  );
+}
+
+function OSPage({ os, cliente, copy, total }: PrintOSProps & { copy: number; total: number }) {
+  return (
+    <div className="print-page" style={{ pageBreakAfter: copy < total ? "always" : "auto", padding: "8px 0" }}>
+      <FichaCompleta os={os} cliente={cliente} />
+      <FichaResumida os={os} cliente={cliente} />
+      <FichaRecibo os={os} cliente={cliente} />
+      {total > 1 && (
+        <div style={{ textAlign: "right", fontSize: 9, color: "#999", marginTop: 4, maxWidth: 720, margin: "4px auto 0" }}>Via {copy} de {total}</div>
+      )}
     </div>
   );
 }
@@ -110,31 +246,12 @@ export function PrintOSButton({ os, cliente }: PrintOSProps) {
   const handlePrint = () => {
     const printContent = printRef.current;
     if (!printContent) return;
-
     const win = window.open("", "_blank");
     if (!win) return;
-
-    win.document.write(`
-      <html>
-        <head>
-          <title>OS #${os.numero_os} - ERÊ Bancos</title>
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { padding: 16px; }
-            .print-ficha { margin-bottom: 16px; }
-            @media print {
-              body { padding: 0; }
-              .print-ficha { margin-bottom: 0; }
-            }
-          </style>
-        </head>
-        <body>${printContent.innerHTML}</body>
-      </html>
-    `);
+    win.document.write(`<html><head><title>OS #${os.numero_os} - ERÊ Bancos</title><style>*{margin:0;padding:0;box-sizing:border-box}body{padding:12px;font-family:Arial,Helvetica,sans-serif}.print-page{margin-bottom:12px}@media print{body{padding:0}.print-page{margin-bottom:0}}</style></head><body>${printContent.innerHTML}</body></html>`);
     win.document.close();
     win.focus();
     setTimeout(() => { win.print(); win.close(); }, 300);
-
     setOpen(false);
   };
 
@@ -143,7 +260,6 @@ export function PrintOSButton({ os, cliente }: PrintOSProps) {
       <Button variant="outline" onClick={() => setOpen(true)} className="gap-2">
         <Printer className="h-4 w-4" /> Imprimir OS
       </Button>
-
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -152,28 +268,17 @@ export function PrintOSButton({ os, cliente }: PrintOSProps) {
           </DialogHeader>
           <div className="flex items-center gap-4 py-4">
             <Label htmlFor="copies">Número de cópias</Label>
-            <Input
-              id="copies"
-              type="number"
-              min={1}
-              max={10}
-              value={copies}
-              onChange={(e) => setCopies(Math.max(1, Math.min(10, Number(e.target.value))))}
-              className="w-20"
-            />
+            <Input id="copies" type="number" min={1} max={10} value={copies} onChange={(e) => setCopies(Math.max(1, Math.min(10, Number(e.target.value))))} className="w-20" />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={handlePrint} className="gap-2">
-              <Printer className="h-4 w-4" /> Imprimir
-            </Button>
+            <Button onClick={handlePrint} className="gap-2"><Printer className="h-4 w-4" /> Imprimir</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       <div ref={printRef} className="hidden">
         {Array.from({ length: copies }, (_, i) => (
-          <OSFicha key={i} os={os} cliente={cliente} copy={i + 1} total={copies} />
+          <OSPage key={i} os={os} cliente={cliente} copy={i + 1} total={copies} />
         ))}
       </div>
     </>
