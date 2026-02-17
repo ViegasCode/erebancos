@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Printer } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Printer, Eye } from "lucide-react";
 
 interface PrintOSProps {
   os: OrdemServico;
@@ -235,6 +236,31 @@ function OSPage({ os, cliente, copy, total }: PrintOSProps & { copy: number; tot
         <div style={{ textAlign: "right", fontSize: 9, color: "#999", marginTop: 4, maxWidth: 720, margin: "4px auto 0" }}>Via {copy} de {total}</div>
       )}
     </div>
+  );
+}
+
+export function PreviewOSButton({ os, cliente }: PrintOSProps) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button variant="outline" onClick={() => setOpen(true)} className="gap-2">
+        <Eye className="h-4 w-4" /> Visualizar OS
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] p-0">
+          <DialogHeader className="px-6 pt-6 pb-0">
+            <DialogTitle>Visualizar OS #{os.numero_os}</DialogTitle>
+            <DialogDescription>Pré-visualização da ficha de impressão.</DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[75vh] px-6 pb-6">
+            <div className="bg-white p-4 rounded border">
+              <OSPage os={os} cliente={cliente} copy={1} total={1} />
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
