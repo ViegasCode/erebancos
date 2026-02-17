@@ -3,10 +3,10 @@ import { Cliente, OrdemServico, HistoricoStatus } from "@/types";
 const today = new Date().toISOString().split("T")[0];
 
 export const mockClientes: Cliente[] = [
-  { id: "c1", nome: "João Silva", cpf: "123.456.789-00", telefone: "(11) 99999-1234", email: "joao@email.com", cidade: "São Paulo", estado: "SP", created_at: "2024-10-01" },
-  { id: "c2", nome: "Maria Santos", cpf: "987.654.321-00", telefone: "(21) 98888-5678", cidade: "Rio de Janeiro", estado: "RJ", created_at: "2024-11-15" },
-  { id: "c3", nome: "Pedro Oliveira", cpf: "456.789.123-00", telefone: "(31) 97777-9012", email: "pedro@email.com", cidade: "Belo Horizonte", estado: "MG", created_at: "2025-01-10" },
-  { id: "c4", nome: "Ana Costa", cpf: "321.654.987-00", telefone: "(41) 96666-3456", cidade: "Curitiba", estado: "PR", created_at: "2025-02-01" },
+  { id: "c1", nome: "João Silva", tipo_documento: "CPF", cpf: "123.456.789-00", telefone: "(11) 99999-1234", email: "joao@email.com", cidade: "São Paulo", estado: "SP", created_at: "2024-10-01" },
+  { id: "c2", nome: "Maria Santos", tipo_documento: "CPF", cpf: "987.654.321-00", telefone: "(21) 98888-5678", cidade: "Rio de Janeiro", estado: "RJ", created_at: "2024-11-15" },
+  { id: "c3", nome: "Pedro Oliveira", tipo_documento: "CPF", cpf: "456.789.123-00", telefone: "(31) 97777-9012", email: "pedro@email.com", cidade: "Belo Horizonte", estado: "MG", created_at: "2025-01-10" },
+  { id: "c4", nome: "Ana Costa", tipo_documento: "CNPJ", cpf: "12.345.678/0001-95", telefone: "(41) 96666-3456", cidade: "Curitiba", estado: "PR", created_at: "2025-02-01" },
 ];
 
 export const mockOrdens: OrdemServico[] = [

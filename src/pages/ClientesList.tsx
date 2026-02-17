@@ -45,7 +45,7 @@ export default function ClientesList() {
           <thead>
             <tr className="border-b border-border text-left text-muted-foreground">
               <th className="px-5 py-3 font-medium">Nome</th>
-              <th className="px-5 py-3 font-medium">CPF</th>
+              <th className="px-5 py-3 font-medium">CPF/CNPJ</th>
               <th className="px-5 py-3 font-medium">Telefone</th>
               <th className="px-5 py-3 font-medium">Última OS</th>
               <th className="px-5 py-3 font-medium">Total Gasto</th>

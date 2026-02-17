@@ -84,7 +84,7 @@ export default function OrdemDetalhe() {
           {cliente && (
             <div className="space-y-1 text-sm">
               <p><Link to={`/clientes/${cliente.id}`} className="font-medium text-primary hover:underline">{cliente.nome}</Link></p>
-              <p className="text-muted-foreground">CPF: {cliente.cpf}</p>
+              <p className="text-muted-foreground">{cliente.tipo_documento}: {cliente.cpf}</p>
               <p className="text-muted-foreground">Tel: {cliente.telefone}</p>
             </div>
           )}

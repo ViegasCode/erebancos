@@ -58,7 +58,7 @@ function FichaCompleta({ os, cliente }: PrintOSProps) {
             <td style={cell}><span style={lbl}>CEP:</span> {cliente?.cep || "—"}</td>
           </tr>
           <tr>
-            <td style={cell}><span style={lbl}>CPF:</span> {cliente?.cpf || "—"}</td>
+            <td style={cell}><span style={lbl}>{cliente?.tipo_documento || "CPF"}:</span> {cliente?.cpf || "—"}</td>
             <td style={cell}><span style={lbl}>PAGTO:</span> {os.pagamentos.map(p => `${p.forma}: ${formatCurrency(p.valor)}`).join(" / ")}</td>
             <td style={cell} colSpan={2}><span style={lbl}>P/DIA:</span> {formatDate(os.data_previsao)}</td>
           </tr>

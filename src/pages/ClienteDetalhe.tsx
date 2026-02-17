@@ -22,7 +22,7 @@ export default function ClienteDetalhe() {
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)}><ArrowLeft className="h-4 w-4" /></Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-foreground">{cliente.nome}</h1>
-          <p className="text-sm text-muted-foreground">CPF: {cliente.cpf}</p>
+          <p className="text-sm text-muted-foreground">{cliente.tipo_documento}: {cliente.cpf}</p>
         </div>
         <Button onClick={() => navigate(`/ordens/nova?cliente=${cliente.id}`)} className="gap-2">
           <Plus className="h-4 w-4" /> Nova OS
