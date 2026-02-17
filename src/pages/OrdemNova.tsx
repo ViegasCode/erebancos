@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAppData } from "@/context/AppContext";
-import { formatCPF, formatPhone, validateCPF, formatCurrency } from "@/lib/formatters";
-import { OS_TIPOS, LOCAIS_COMPRA, FORMAS_PAGAMENTO, Servico, Pagamento, FormaPagamento, LocalCompra } from "@/types";
+import { formatDocumento, formatPhone, validateDocumento, formatCurrency } from "@/lib/formatters";
+import { OS_TIPOS, LOCAIS_COMPRA, FORMAS_PAGAMENTO, Servico, Pagamento, FormaPagamento, LocalCompra, TipoDocumento } from "@/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -17,8 +17,10 @@ export default function OrdemNova() {
   const { clientes, addCliente, findClienteByCpf, addOrdem } = useAppData();
 
   const [cpfBusca, setCpfBusca] = useState("");
+  const [tipoDocBusca, setTipoDocBusca] = useState<TipoDocumento>("CPF");
   const [clienteSelecionado, setClienteSelecionado] = useState<string | null>(searchParams.get("cliente"));
   const [showCadastro, setShowCadastro] = useState(false);
+  const [tipoDocNovo, setTipoDocNovo] = useState<TipoDocumento>("CPF");
   const [novoCliente, setNovoCliente] = useState({ nome: "", cpf: "", telefone: "", email: "" });
 
   // Serviços múltiplos
@@ -55,14 +57,15 @@ export default function OrdemNova() {
     } else {
       toast.info("Cliente não encontrado. Cadastre abaixo.");
       setShowCadastro(true);
-      setNovoCliente((n) => ({ ...n, cpf: formatCPF(cpfBusca) }));
+      setTipoDocNovo(tipoDocBusca);
+      setNovoCliente((n) => ({ ...n, cpf: formatDocumento(cpfBusca, tipoDocBusca) }));
     }
   };
 
   const cadastrarRapido = () => {
-    if (!novoCliente.nome || !novoCliente.cpf || !novoCliente.telefone) { toast.error("Preencha nome, CPF e telefone"); return; }
-    if (!validateCPF(novoCliente.cpf)) { toast.error("CPF inválido"); return; }
-    const c = addCliente(novoCliente);
+    if (!novoCliente.nome || !novoCliente.cpf || !novoCliente.telefone) { toast.error(`Preencha nome, ${tipoDocNovo} e telefone`); return; }
+    if (!validateDocumento(novoCliente.cpf, tipoDocNovo)) { toast.error(`${tipoDocNovo} inválido`); return; }
+    const c = addCliente({ ...novoCliente, tipo_documento: tipoDocNovo });
     setClienteSelecionado(c.id);
     setShowCadastro(false);
     toast.success("Cliente cadastrado!");
@@ -122,14 +125,18 @@ export default function OrdemNova() {
           <div className="flex items-center justify-between rounded-lg bg-success/10 p-3 border border-success/20">
             <div>
               <p className="font-medium">{cliente.nome}</p>
-              <p className="text-sm text-muted-foreground">CPF: {cliente.cpf} • {cliente.telefone}</p>
+              <p className="text-sm text-muted-foreground">{cliente.tipo_documento}: {cliente.cpf} • {cliente.telefone}</p>
             </div>
             <Button variant="outline" size="sm" onClick={() => { setClienteSelecionado(null); setCpfBusca(""); }}>Alterar</Button>
           </div>
         ) : (
           <>
             <div className="flex gap-2">
-              <Input placeholder="Buscar por CPF..." value={cpfBusca} onChange={(e) => setCpfBusca(formatCPF(e.target.value))} className="flex-1" />
+              <div className="flex gap-1">
+                <Button type="button" size="sm" variant={tipoDocBusca === "CPF" ? "default" : "outline"} onClick={() => setTipoDocBusca("CPF")}>CPF</Button>
+                <Button type="button" size="sm" variant={tipoDocBusca === "CNPJ" ? "default" : "outline"} onClick={() => setTipoDocBusca("CNPJ")}>CNPJ</Button>
+              </div>
+              <Input placeholder={`Buscar por ${tipoDocBusca}...`} value={cpfBusca} onChange={(e) => setCpfBusca(formatDocumento(e.target.value, tipoDocBusca))} className="flex-1" />
               <Button onClick={buscarCPF} className="gap-2"><Search className="h-4 w-4" /> Buscar</Button>
             </div>
             {showCadastro && (
@@ -137,7 +144,7 @@ export default function OrdemNova() {
                 <p className="text-sm font-medium flex items-center gap-2"><UserPlus className="h-4 w-4" /> Cadastro Rápido</p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Input placeholder="Nome *" value={novoCliente.nome} onChange={(e) => setNovoCliente((n) => ({ ...n, nome: e.target.value }))} />
-                  <Input placeholder="CPF *" value={novoCliente.cpf} onChange={(e) => setNovoCliente((n) => ({ ...n, cpf: formatCPF(e.target.value) }))} />
+                  <Input placeholder={`${tipoDocNovo} *`} value={novoCliente.cpf} onChange={(e) => setNovoCliente((n) => ({ ...n, cpf: formatDocumento(e.target.value, tipoDocNovo) }))} />
                   <Input placeholder="Telefone *" value={novoCliente.telefone} onChange={(e) => setNovoCliente((n) => ({ ...n, telefone: formatPhone(e.target.value) }))} />
                   <Input placeholder="Email" value={novoCliente.email} onChange={(e) => setNovoCliente((n) => ({ ...n, email: e.target.value }))} />
                 </div>

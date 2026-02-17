@@ -29,10 +29,13 @@ export interface Pagamento {
   valor: number;
 }
 
+export type TipoDocumento = "CPF" | "CNPJ";
+
 export interface Cliente {
   id: string;
   nome: string;
-  cpf: string;
+  tipo_documento: TipoDocumento;
+  cpf: string; // stores CPF or CNPJ
   telefone: string;
   email?: string;
   cep?: string;
