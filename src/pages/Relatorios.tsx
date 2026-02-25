@@ -6,49 +6,47 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { DollarSign, FileText, TrendingUp, Clock, Download } from "lucide-react";
-import { LOCAIS_COMPRA } from "@/types";
+import { StatusBadge } from "@/components/StatusBadge";
+import { DollarSign, FileText, TrendingUp, Clock, Download, Loader2 } from "lucide-react";
 
 export default function Relatorios() {
-  const { ordens } = useAppData();
+  const { ordens, statuses, loading } = useAppData();
 
   const [inicio, setInicio] = useState("2025-01-01");
-  const [fim, setFim] = useState("2025-12-31");
-  const [vendedor, setVendedor] = useState("todos");
+  const [fim, setFim] = useState("2026-12-31");
   const [statusFilter, setStatusFilter] = useState("todos");
-  const [localFilter, setLocalFilter] = useState("todos");
-  const [influencerFilter, setInfluencerFilter] = useState("");
 
-  const vendedores = [...new Set(ordens.map((o) => o.vendedor))];
+  const statusFinal = statuses.find(s => s.is_final);
+  const statusCancelamento = statuses.find(s => s.is_cancelamento);
 
   const filtered = useMemo(() => {
-    return ordens.filter((o) => {
+    return ordens.filter(o => {
       if (o.created_at < inicio || o.created_at > fim + "T23:59:59") return false;
-      if (vendedor !== "todos" && o.vendedor !== vendedor) return false;
-      if (statusFilter !== "todos" && o.status !== statusFilter) return false;
-      if (localFilter !== "todos" && o.local_compra !== localFilter) return false;
-      if (localFilter === "Influencer" && influencerFilter && o.influencer && !o.influencer.toLowerCase().includes(influencerFilter.toLowerCase())) return false;
+      if (statusFilter !== "todos" && o.status_id !== statusFilter) return false;
       return true;
     });
-  }, [ordens, inicio, fim, vendedor, statusFilter, localFilter, influencerFilter]);
+  }, [ordens, inicio, fim, statusFilter]);
 
-  const totalFaturado = filtered.filter((o) => o.status !== "Cancelada").reduce((s, o) => s + o.total_venda, 0);
+  if (loading) return <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+
+  const totalFaturado = filtered.filter(o => o.status_id !== statusCancelamento?.id).reduce((s, o) => s + Number(o.valor_total), 0);
   const qtdOS = filtered.length;
   const ticketMedio = qtdOS > 0 ? totalFaturado / qtdOS : 0;
 
-  const finalizadas = filtered.filter((o) => o.status === "Finalizado");
+  const finalizadas = filtered.filter(o => o.status_id === statusFinal?.id);
   const tempoMedio = finalizadas.length > 0
     ? finalizadas.reduce((s, o) => {
-        const diff = new Date(o.updated_at).getTime() - new Date(o.created_at).getTime();
+        const diff = new Date(o.data_finalizacao || o.updated_at).getTime() - new Date(o.created_at).getTime();
         return s + diff / (1000 * 60 * 60 * 24);
       }, 0) / finalizadas.length
     : 0;
 
   const exportCSV = () => {
-    const headers = "Nº OS,Cliente ID,Marca,Modelo,Tipo,Valor,Desconto,Frete,Total,Pagamentos,Vendedor,Status,Local Compra,Influencer,Data Criação,Previsão\n";
-    const rows = filtered.map((o) => {
-      const pags = o.pagamentos.map((p) => `${p.forma}:${p.valor}`).join("|");
-      return `${o.numero_os},${o.cliente_id},${o.marca},${o.modelo},${o.tipo},${o.valor},${o.desconto},${o.frete},${o.total_venda},"${pags}",${o.vendedor},${o.status},${o.local_compra},${o.influencer || ""},${o.created_at},${o.data_previsao}`;
+    const headers = "Nº OS,Cliente,Total,Status,Data Criação,Previsão\n";
+    const rows = filtered.map(o => {
+      const cliente = (o as any).cliente;
+      const status = (o as any).status;
+      return `${o.numero_os},"${cliente?.nome || ""}",${o.valor_total},"${status?.nome || ""}",${o.created_at},${o.data_prevista || ""}`;
     }).join("\n");
     const blob = new Blob([headers + rows], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -69,51 +67,23 @@ export default function Relatorios() {
         <Button variant="outline" onClick={exportCSV} className="gap-2"><Download className="h-4 w-4" /> Exportar CSV</Button>
       </div>
 
-      {/* Filters */}
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <div><Label>Data Início</Label><Input type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} /></div>
-          <div><Label>Data Fim</Label><Input type="date" value={fim} onChange={(e) => setFim(e.target.value)} /></div>
-          <div>
-            <Label>Vendedor</Label>
-            <Select value={vendedor} onValueChange={setVendedor}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {vendedores.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div><Label>Data Início</Label><Input type="date" value={inicio} onChange={e => setInicio(e.target.value)} /></div>
+          <div><Label>Data Fim</Label><Input type="date" value={fim} onChange={e => setFim(e.target.value)} /></div>
           <div>
             <Label>Status</Label>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="Criada">Criada</SelectItem>
-                <SelectItem value="Em Teste">Em Teste</SelectItem>
-                <SelectItem value="Finalizado">Finalizado</SelectItem>
-                <SelectItem value="Cancelada">Cancelada</SelectItem>
+                {statuses.map(s => <SelectItem key={s.id} value={s.id}>{s.nome}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <Label>Local de Compra</Label>
-            <Select value={localFilter} onValueChange={(v) => { setLocalFilter(v); if (v !== "Influencer") setInfluencerFilter(""); }}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {LOCAIS_COMPRA.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          {localFilter === "Influencer" && (
-            <div><Label>Nome do Influencer</Label><Input value={influencerFilter} onChange={(e) => setInfluencerFilter(e.target.value)} placeholder="Buscar influencer..." /></div>
-          )}
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Total Faturado" value={formatCurrency(totalFaturado)} icon={DollarSign} variant="success" />
         <StatCard title="Quantidade de OS" value={qtdOS} icon={FileText} variant="default" />
@@ -121,28 +91,23 @@ export default function Relatorios() {
         <StatCard title="Tempo Médio (dias)" value={tempoMedio.toFixed(1)} icon={Clock} variant="warning" />
       </div>
 
-      {/* Table */}
       <div className="rounded-xl border border-border bg-card shadow-sm overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left text-muted-foreground">
               <th className="px-5 py-3 font-medium">OS</th>
-              <th className="px-5 py-3 font-medium">Moto</th>
-              <th className="px-5 py-3 font-medium">Vendedor</th>
+              <th className="px-5 py-3 font-medium">Cliente</th>
               <th className="px-5 py-3 font-medium">Total</th>
-              <th className="px-5 py-3 font-medium">Local</th>
               <th className="px-5 py-3 font-medium">Status</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((os) => (
+            {filtered.map(os => (
               <tr key={os.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                <td className="px-5 py-3 font-semibold text-primary">#{os.numero_os}</td>
-                <td className="px-5 py-3">{os.marca} {os.modelo}</td>
-                <td className="px-5 py-3">{os.vendedor}</td>
-                <td className="px-5 py-3 font-medium">{formatCurrency(os.total_venda)}</td>
-                <td className="px-5 py-3 text-xs">{os.local_compra}{os.influencer ? ` (${os.influencer})` : ""}</td>
-                <td className="px-5 py-3"><span className="status-badge bg-muted text-muted-foreground">{os.status}</span></td>
+                <td className="px-5 py-3 font-semibold text-primary">{os.numero_os}</td>
+                <td className="px-5 py-3">{(os as any).cliente?.nome || "—"}</td>
+                <td className="px-5 py-3 font-medium">{formatCurrency(Number(os.valor_total))}</td>
+                <td className="px-5 py-3"><StatusBadge status={(os as any).status} /></td>
               </tr>
             ))}
           </tbody>
