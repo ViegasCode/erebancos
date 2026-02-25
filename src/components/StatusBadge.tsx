@@ -1,16 +1,23 @@
-import { OSStatus } from "@/types";
+import type { StatusConfig } from "@/types";
 
-export const statusColor: Record<OSStatus, string> = {
-  Criada: "bg-muted text-muted-foreground",
-  "Em Teste": "bg-info/15 text-info",
-  Finalizado: "bg-success/15 text-success",
-  Cancelada: "bg-destructive/15 text-destructive",
-};
+interface StatusBadgeProps {
+  status?: StatusConfig | null;
+  label?: string;
+}
 
-export function StatusBadge({ status }: { status: OSStatus }) {
+export function StatusBadge({ status, label }: StatusBadgeProps) {
+  const nome = label || status?.nome || "—";
+  const cor = status?.cor || "#6b7280";
+
   return (
-    <span className={`status-badge ${statusColor[status]}`}>
-      {status}
+    <span
+      className="status-badge"
+      style={{
+        backgroundColor: `${cor}20`,
+        color: cor,
+      }}
+    >
+      {nome}
     </span>
   );
 }

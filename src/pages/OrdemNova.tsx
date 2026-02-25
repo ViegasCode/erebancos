@@ -1,55 +1,54 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAppData } from "@/context/AppContext";
 import { formatDocumento, formatPhone, validateDocumento, formatCurrency } from "@/lib/formatters";
-import { OS_TIPOS, LOCAIS_COMPRA, FORMAS_PAGAMENTO, Servico, Pagamento, FormaPagamento, LocalCompra, TipoDocumento } from "@/types";
+import type { CampoOS, OSItem } from "@/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { ArrowLeft, Search, Save, UserPlus, Plus, Trash2 } from "lucide-react";
+
+type TipoDoc = "CPF" | "CNPJ";
 
 export default function OrdemNova() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { clientes, addCliente, findClienteByCpf, addOrdem } = useAppData();
+  const { clientes, addCliente, addOrdem, campos, servicos, produtos } = useAppData();
 
-  const [cpfBusca, setCpfBusca] = useState("");
-  const [tipoDocBusca, setTipoDocBusca] = useState<TipoDocumento>("CPF");
+  const [docBusca, setDocBusca] = useState("");
+  const [tipoDocBusca, setTipoDocBusca] = useState<TipoDoc>("CPF");
   const [clienteSelecionado, setClienteSelecionado] = useState<string | null>(searchParams.get("cliente"));
   const [showCadastro, setShowCadastro] = useState(false);
-  const [tipoDocNovo, setTipoDocNovo] = useState<TipoDocumento>("CPF");
-  const [novoCliente, setNovoCliente] = useState({ nome: "", cpf: "", telefone: "", email: "" });
+  const [tipoDocNovo, setTipoDocNovo] = useState<TipoDoc>("CPF");
+  const [novoCliente, setNovoCliente] = useState({ nome: "", documento: "", telefone: "", email: "" });
+  const [loading, setLoading] = useState(false);
 
-  // Serviços múltiplos
-  const [servicos, setServicos] = useState<Servico[]>([{ descricao: "", material: "" }]);
+  // Items (services + products)
+  const [itens, setItens] = useState<Partial<OSItem>[]>([{ tipo: "servico", descricao: "", quantidade: 1, valor_unitario: 0, valor_total: 0 }]);
 
-  // Pagamento
-  const [valor, setValor] = useState("");
-  const [desconto, setDesconto] = useState("");
-  const [frete, setFrete] = useState("");
-  const [pagamentos, setPagamentos] = useState<Pagamento[]>([{ forma: "PIX", valor: 0 }]);
-  const [localCompra, setLocalCompra] = useState<LocalCompra>("Fisicamente");
-  const [influencer, setInfluencer] = useState("");
+  // Custom fields
+  const [camposValores, setCamposValores] = useState<Record<string, string>>({});
+  const activeCampos = campos.filter(c => c.ativo);
 
-  const [form, setForm] = useState({
-    marca: "", modelo: "", cilindrada: "", ano: "",
-    tipo: "Retirada" as any,
-    vendedor: "", data_previsao: "",
-    peso_piloto: "", altura_piloto: "", peso_garupa: "", altura_garupa: "", coccix: "",
-  });
+  useEffect(() => {
+    const initial: Record<string, string> = {};
+    activeCampos.forEach(c => { initial[c.id] = ""; });
+    setCamposValores(initial);
+  }, [campos]);
 
-  const cliente = clientes.find((c) => c.id === clienteSelecionado);
+  // Form
+  const [dataPrevista, setDataPrevista] = useState("");
+  const [observacoes, setObservacoes] = useState("");
 
-  const valorNum = parseFloat(valor) || 0;
-  const descontoNum = parseFloat(desconto) || 0;
-  const freteNum = parseFloat(frete) || 0;
-  const totalVenda = valorNum - descontoNum + freteNum;
+  const cliente = clientes.find(c => c.id === clienteSelecionado);
+  const valorTotal = itens.reduce((sum, item) => sum + (item.valor_total || 0), 0);
 
-  const buscarCPF = () => {
-    const found = findClienteByCpf(cpfBusca);
+  const buscarDoc = () => {
+    const found = clientes.find(c => c.documento.replace(/\D/g, "") === docBusca.replace(/\D/g, ""));
     if (found) {
       setClienteSelecionado(found.id);
       setShowCadastro(false);
@@ -58,55 +57,105 @@ export default function OrdemNova() {
       toast.info("Cliente não encontrado. Cadastre abaixo.");
       setShowCadastro(true);
       setTipoDocNovo(tipoDocBusca);
-      setNovoCliente((n) => ({ ...n, cpf: formatDocumento(cpfBusca, tipoDocBusca) }));
+      setNovoCliente(n => ({ ...n, documento: formatDocumento(docBusca, tipoDocBusca) }));
     }
   };
 
-  const cadastrarRapido = () => {
-    if (!novoCliente.nome || !novoCliente.cpf || !novoCliente.telefone) { toast.error(`Preencha nome, ${tipoDocNovo} e telefone`); return; }
-    if (!validateDocumento(novoCliente.cpf, tipoDocNovo)) { toast.error(`${tipoDocNovo} inválido`); return; }
-    const c = addCliente({ ...novoCliente, tipo_documento: tipoDocNovo });
-    setClienteSelecionado(c.id);
-    setShowCadastro(false);
-    toast.success("Cliente cadastrado!");
+  const cadastrarRapido = async () => {
+    if (!novoCliente.nome || !novoCliente.documento || !novoCliente.telefone) { toast.error("Preencha nome, documento e telefone"); return; }
+    if (!validateDocumento(novoCliente.documento, tipoDocNovo)) { toast.error(`${tipoDocNovo} inválido`); return; }
+    try {
+      const c = await addCliente({ ...novoCliente, tipo_documento: tipoDocNovo });
+      setClienteSelecionado(c.id);
+      setShowCadastro(false);
+      toast.success("Cliente cadastrado!");
+    } catch (error: any) {
+      toast.error(error.message);
+    }
   };
 
-  const addServico = () => setServicos((s) => [...s, { descricao: "", material: "" }]);
-  const removeServico = (i: number) => setServicos((s) => s.filter((_, idx) => idx !== i));
-  const updateServico = (i: number, field: keyof Servico, value: string) =>
-    setServicos((s) => s.map((srv, idx) => idx === i ? { ...srv, [field]: value } : srv));
+  const addItem = () => setItens(s => [...s, { tipo: "servico", descricao: "", quantidade: 1, valor_unitario: 0, valor_total: 0 }]);
+  const removeItem = (i: number) => setItens(s => s.filter((_, idx) => idx !== i));
+  const updateItem = (i: number, field: string, value: any) => {
+    setItens(s => s.map((item, idx) => {
+      if (idx !== i) return item;
+      const updated = { ...item, [field]: value };
+      if (field === "quantidade" || field === "valor_unitario") {
+        updated.valor_total = (updated.quantidade || 1) * (updated.valor_unitario || 0);
+      }
+      if (field === "referencia_id" && updated.tipo === "servico") {
+        const srv = servicos.find(s => s.id === value);
+        if (srv) { updated.descricao = srv.nome; updated.valor_unitario = Number(srv.preco); updated.valor_total = (updated.quantidade || 1) * Number(srv.preco); }
+      }
+      if (field === "referencia_id" && updated.tipo === "produto") {
+        const prod = produtos.find(p => p.id === value);
+        if (prod) { updated.descricao = prod.nome; updated.valor_unitario = Number(prod.preco); updated.valor_total = (updated.quantidade || 1) * Number(prod.preco); }
+      }
+      return updated;
+    }));
+  };
 
-  const addPagamento = () => setPagamentos((p) => [...p, { forma: "PIX", valor: 0 }]);
-  const removePagamento = (i: number) => setPagamentos((p) => p.filter((_, idx) => idx !== i));
-  const updatePagamento = (i: number, field: keyof Pagamento, value: any) =>
-    setPagamentos((p) => p.map((pg, idx) => idx === i ? { ...pg, [field]: value } : pg));
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clienteSelecionado) { toast.error("Selecione um cliente"); return; }
-    if (!form.marca || !form.modelo || !valor || !form.vendedor || !form.data_previsao) {
-      toast.error("Preencha todos os campos obrigatórios"); return;
-    }
-    if (servicos.some((s) => !s.descricao)) { toast.error("Preencha a descrição de todos os serviços"); return; }
+    if (itens.some(item => !item.descricao)) { toast.error("Preencha a descrição de todos os itens"); return; }
 
-    const os = addOrdem({
-      ...form,
-      servicos,
-      valor: valorNum,
-      desconto: descontoNum,
-      frete: freteNum,
-      total_venda: totalVenda,
-      pagamentos,
-      local_compra: localCompra,
-      influencer: localCompra === "Influencer" ? influencer : undefined,
-      cliente_id: clienteSelecionado,
-      status: "Criada",
-    });
-    toast.success(`OS #${os.numero_os} criada com sucesso!`);
-    navigate(`/ordens/${os.id}`);
+    // Validate required custom fields
+    for (const campo of activeCampos) {
+      if (campo.obrigatorio && !camposValores[campo.id]) {
+        toast.error(`Campo "${campo.nome}" é obrigatório`);
+        return;
+      }
+    }
+
+    setLoading(true);
+    try {
+      const camposArray = Object.entries(camposValores).filter(([_, v]) => v).map(([campo_id, valor]) => ({ campo_id, valor }));
+      const os = await addOrdem(
+        { cliente_id: clienteSelecionado, data_prevista: dataPrevista || undefined, observacoes: observacoes || undefined },
+        itens as Partial<OSItem>[],
+        camposArray
+      );
+      toast.success(`${os.numero_os} criada com sucesso!`);
+      navigate(`/ordens/${os.id}`);
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao criar OS");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateForm = (field: string, value: string) => setForm((f) => ({ ...f, [field]: value }));
+  const renderCampo = (campo: CampoOS) => {
+    const value = camposValores[campo.id] || "";
+    const onChange = (v: string) => setCamposValores(prev => ({ ...prev, [campo.id]: v }));
+
+    switch (campo.tipo) {
+      case "texto":
+        return <Input value={value} onChange={e => onChange(e.target.value)} placeholder={campo.nome} />;
+      case "numero":
+        return <Input type="number" value={value} onChange={e => onChange(e.target.value)} placeholder={campo.nome} />;
+      case "data":
+        return <Input type="date" value={value} onChange={e => onChange(e.target.value)} />;
+      case "select":
+        return (
+          <Select value={value} onValueChange={onChange}>
+            <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+            <SelectContent>
+              {(campo.opcoes || []).map((op: string) => <SelectItem key={op} value={op}>{op}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        );
+      case "checkbox":
+        return (
+          <div className="flex items-center gap-2">
+            <Checkbox checked={value === "true"} onCheckedChange={v => onChange(v ? "true" : "false")} />
+            <span className="text-sm">{campo.nome}</span>
+          </div>
+        );
+      default:
+        return <Input value={value} onChange={e => onChange(e.target.value)} />;
+    }
+  };
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -125,9 +174,9 @@ export default function OrdemNova() {
           <div className="flex items-center justify-between rounded-lg bg-success/10 p-3 border border-success/20">
             <div>
               <p className="font-medium">{cliente.nome}</p>
-              <p className="text-sm text-muted-foreground">{cliente.tipo_documento}: {cliente.cpf} • {cliente.telefone}</p>
+              <p className="text-sm text-muted-foreground">{cliente.tipo_documento}: {cliente.documento} • {cliente.telefone}</p>
             </div>
-            <Button variant="outline" size="sm" onClick={() => { setClienteSelecionado(null); setCpfBusca(""); }}>Alterar</Button>
+            <Button variant="outline" size="sm" onClick={() => { setClienteSelecionado(null); setDocBusca(""); }}>Alterar</Button>
           </div>
         ) : (
           <>
@@ -136,17 +185,17 @@ export default function OrdemNova() {
                 <Button type="button" size="sm" variant={tipoDocBusca === "CPF" ? "default" : "outline"} onClick={() => setTipoDocBusca("CPF")}>CPF</Button>
                 <Button type="button" size="sm" variant={tipoDocBusca === "CNPJ" ? "default" : "outline"} onClick={() => setTipoDocBusca("CNPJ")}>CNPJ</Button>
               </div>
-              <Input placeholder={`Buscar por ${tipoDocBusca}...`} value={cpfBusca} onChange={(e) => setCpfBusca(formatDocumento(e.target.value, tipoDocBusca))} className="flex-1" />
-              <Button onClick={buscarCPF} className="gap-2"><Search className="h-4 w-4" /> Buscar</Button>
+              <Input placeholder={`Buscar por ${tipoDocBusca}...`} value={docBusca} onChange={e => setDocBusca(formatDocumento(e.target.value, tipoDocBusca))} className="flex-1" />
+              <Button onClick={buscarDoc} className="gap-2"><Search className="h-4 w-4" /> Buscar</Button>
             </div>
             {showCadastro && (
               <div className="rounded-lg border border-border p-4 space-y-3 bg-muted/30">
                 <p className="text-sm font-medium flex items-center gap-2"><UserPlus className="h-4 w-4" /> Cadastro Rápido</p>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Input placeholder="Nome *" value={novoCliente.nome} onChange={(e) => setNovoCliente((n) => ({ ...n, nome: e.target.value }))} />
-                  <Input placeholder={`${tipoDocNovo} *`} value={novoCliente.cpf} onChange={(e) => setNovoCliente((n) => ({ ...n, cpf: formatDocumento(e.target.value, tipoDocNovo) }))} />
-                  <Input placeholder="Telefone *" value={novoCliente.telefone} onChange={(e) => setNovoCliente((n) => ({ ...n, telefone: formatPhone(e.target.value) }))} />
-                  <Input placeholder="Email" value={novoCliente.email} onChange={(e) => setNovoCliente((n) => ({ ...n, email: e.target.value }))} />
+                  <Input placeholder="Nome *" value={novoCliente.nome} onChange={e => setNovoCliente(n => ({ ...n, nome: e.target.value }))} />
+                  <Input placeholder={`${tipoDocNovo} *`} value={novoCliente.documento} onChange={e => setNovoCliente(n => ({ ...n, documento: formatDocumento(e.target.value, tipoDocNovo) }))} />
+                  <Input placeholder="Telefone *" value={novoCliente.telefone} onChange={e => setNovoCliente(n => ({ ...n, telefone: formatPhone(e.target.value) }))} />
+                  <Input placeholder="Email" value={novoCliente.email} onChange={e => setNovoCliente(n => ({ ...n, email: e.target.value }))} />
                 </div>
                 <Button onClick={cadastrarRapido} size="sm">Cadastrar e Selecionar</Button>
               </div>
@@ -156,119 +205,93 @@ export default function OrdemNova() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Moto */}
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4">
-          <h3 className="font-semibold">2. Dados da Moto</h3>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div><Label>Marca *</Label><Input value={form.marca} onChange={(e) => updateForm("marca", e.target.value)} placeholder="Honda, Yamaha..." /></div>
-            <div><Label>Modelo *</Label><Input value={form.modelo} onChange={(e) => updateForm("modelo", e.target.value)} placeholder="CG 160, MT-03..." /></div>
-            <div><Label>Cilindrada</Label><Input value={form.cilindrada} onChange={(e) => updateForm("cilindrada", e.target.value)} placeholder="160cc" /></div>
-            <div><Label>Ano</Label><Input value={form.ano} onChange={(e) => updateForm("ano", e.target.value)} placeholder="2024" /></div>
-          </div>
-        </div>
-
-        {/* Serviços */}
+        {/* Itens */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold">3. Serviços</h3>
-            <Button type="button" variant="outline" size="sm" onClick={addServico} className="gap-1">
-              <Plus className="h-3 w-3" /> Adicionar Serviço
-            </Button>
+            <h3 className="font-semibold">2. Itens da OS</h3>
+            <Button type="button" variant="outline" size="sm" onClick={addItem} className="gap-1"><Plus className="h-3 w-3" /> Adicionar Item</Button>
           </div>
-          {servicos.map((srv, i) => (
+          {itens.map((item, i) => (
             <div key={i} className="rounded-lg border border-border p-4 space-y-3 bg-muted/10">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-muted-foreground">Serviço {i + 1}</span>
-                {servicos.length > 1 && (
-                  <Button type="button" variant="ghost" size="sm" onClick={() => removeServico(i)} className="text-destructive hover:text-destructive h-7 w-7 p-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-muted-foreground">Item {i + 1}</span>
+                  <Select value={item.tipo || "servico"} onValueChange={v => updateItem(i, "tipo", v)}>
+                    <SelectTrigger className="w-32 h-8"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="servico">Serviço</SelectItem>
+                      <SelectItem value="produto">Produto</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {itens.length > 1 && (
+                  <Button type="button" variant="ghost" size="sm" onClick={() => removeItem(i)} className="text-destructive hover:text-destructive h-7 w-7 p-0">
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 )}
               </div>
-              <div><Label>Descrição *</Label><Textarea value={srv.descricao} onChange={(e) => updateServico(i, "descricao", e.target.value)} placeholder="Descreva o serviço..." /></div>
-              <div><Label>Material</Label><Input value={srv.material} onChange={(e) => updateServico(i, "material", e.target.value)} placeholder="Couro, napa..." /></div>
+
+              {/* Quick select from catalog */}
+              {item.tipo === "servico" && servicos.length > 0 && (
+                <div>
+                  <Label className="text-xs">Selecionar do catálogo</Label>
+                  <Select value={item.referencia_id || ""} onValueChange={v => updateItem(i, "referencia_id", v)}>
+                    <SelectTrigger><SelectValue placeholder="Ou digite manualmente abaixo..." /></SelectTrigger>
+                    <SelectContent>{servicos.filter(s => s.ativo).map(s => <SelectItem key={s.id} value={s.id}>{s.nome} - {formatCurrency(Number(s.preco))}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              )}
+              {item.tipo === "produto" && produtos.length > 0 && (
+                <div>
+                  <Label className="text-xs">Selecionar do catálogo</Label>
+                  <Select value={item.referencia_id || ""} onValueChange={v => updateItem(i, "referencia_id", v)}>
+                    <SelectTrigger><SelectValue placeholder="Ou digite manualmente abaixo..." /></SelectTrigger>
+                    <SelectContent>{produtos.filter(p => p.ativo).map(p => <SelectItem key={p.id} value={p.id}>{p.nome} - {formatCurrency(Number(p.preco))}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div><Label>Descrição *</Label><Input value={item.descricao || ""} onChange={e => updateItem(i, "descricao", e.target.value)} placeholder="Descrição do item" /></div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div><Label>Qtd</Label><Input type="number" step="0.01" min="0.01" value={item.quantidade || ""} onChange={e => updateItem(i, "quantidade", parseFloat(e.target.value) || 0)} /></div>
+                <div><Label>Valor Unit.</Label><Input type="number" step="0.01" value={item.valor_unitario || ""} onChange={e => updateItem(i, "valor_unitario", parseFloat(e.target.value) || 0)} /></div>
+                <div><Label>Total</Label><Input type="number" value={item.valor_total || ""} readOnly className="bg-muted/50" /></div>
+              </div>
             </div>
           ))}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <Label>Tipo</Label>
-              <Select value={form.tipo} onValueChange={(v) => updateForm("tipo", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{OS_TIPOS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div><Label>Vendedor *</Label><Input value={form.vendedor} onChange={(e) => updateForm("vendedor", e.target.value)} /></div>
-            <div><Label>Previsão de Entrega *</Label><Input type="date" value={form.data_previsao} onChange={(e) => updateForm("data_previsao", e.target.value)} /></div>
-          </div>
-        </div>
-
-        {/* Pagamento */}
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4">
-          <h3 className="font-semibold">4. Pagamento</h3>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div><Label>Valor (R$) *</Label><Input type="number" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" /></div>
-            <div><Label>Desconto (R$)</Label><Input type="number" step="0.01" value={desconto} onChange={(e) => setDesconto(e.target.value)} placeholder="0,00" /></div>
-            <div><Label>Frete (R$)</Label><Input type="number" step="0.01" value={frete} onChange={(e) => setFrete(e.target.value)} placeholder="0,00" /></div>
-          </div>
           <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 flex items-center justify-between">
-            <span className="font-medium text-sm">Total da Venda</span>
-            <span className="text-lg font-bold text-primary">{formatCurrency(totalVenda)}</span>
-          </div>
-
-          {/* Formas de pagamento */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label>Formas de Pagamento</Label>
-              <Button type="button" variant="outline" size="sm" onClick={addPagamento} className="gap-1">
-                <Plus className="h-3 w-3" /> Adicionar
-              </Button>
-            </div>
-            {pagamentos.map((pg, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <Select value={pg.forma} onValueChange={(v) => updatePagamento(i, "forma", v as FormaPagamento)}>
-                  <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-                  <SelectContent>{FORMAS_PAGAMENTO.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
-                </Select>
-                <Input type="number" step="0.01" value={pg.valor || ""} onChange={(e) => updatePagamento(i, "valor", parseFloat(e.target.value) || 0)} placeholder="Valor" className="w-32" />
-                {pagamentos.length > 1 && (
-                  <Button type="button" variant="ghost" size="sm" onClick={() => removePagamento(i)} className="text-destructive hover:text-destructive h-8 w-8 p-0">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Local de compra */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <Label>Local de Compra</Label>
-              <Select value={localCompra} onValueChange={(v) => setLocalCompra(v as LocalCompra)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{LOCAIS_COMPRA.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            {localCompra === "Influencer" && (
-              <div><Label>Nome do Influencer</Label><Input value={influencer} onChange={(e) => setInfluencer(e.target.value)} placeholder="Nome do influencer..." /></div>
-            )}
+            <span className="font-medium text-sm">Total da OS</span>
+            <span className="text-lg font-bold text-primary">{formatCurrency(valorTotal)}</span>
           </div>
         </div>
 
-        {/* Dados técnicos */}
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4">
-          <h3 className="font-semibold">5. Dados Técnicos (opcional)</h3>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div><Label>Peso do Piloto</Label><Input value={form.peso_piloto} onChange={(e) => updateForm("peso_piloto", e.target.value)} placeholder="80kg" /></div>
-            <div><Label>Altura do Piloto</Label><Input value={form.altura_piloto} onChange={(e) => updateForm("altura_piloto", e.target.value)} placeholder="1.75m" /></div>
-            <div><Label>Peso do Garupa</Label><Input value={form.peso_garupa} onChange={(e) => updateForm("peso_garupa", e.target.value)} placeholder="60kg" /></div>
-            <div><Label>Altura do Garupa</Label><Input value={form.altura_garupa} onChange={(e) => updateForm("altura_garupa", e.target.value)} placeholder="1.65m" /></div>
-            <div className="sm:col-span-2"><Label>Ajuste de Cóccix</Label><Input value={form.coccix} onChange={(e) => updateForm("coccix", e.target.value)} placeholder="Observações..." /></div>
+        {/* Custom fields */}
+        {activeCampos.length > 0 && (
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4">
+            <h3 className="font-semibold">3. Campos Personalizados</h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {activeCampos.map(campo => (
+                <div key={campo.id}>
+                  <Label>{campo.nome} {campo.obrigatorio && "*"}</Label>
+                  {renderCampo(campo)}
+                </div>
+              ))}
+            </div>
           </div>
+        )}
+
+        {/* Details */}
+        <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4">
+          <h3 className="font-semibold">{activeCampos.length > 0 ? "4" : "3"}. Detalhes</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div><Label>Previsão de Entrega</Label><Input type="date" value={dataPrevista} onChange={e => setDataPrevista(e.target.value)} /></div>
+          </div>
+          <div><Label>Observações</Label><Textarea value={observacoes} onChange={e => setObservacoes(e.target.value)} placeholder="Observações gerais..." /></div>
         </div>
 
         <div className="flex justify-end gap-3">
           <Button type="button" variant="outline" onClick={() => navigate(-1)}>Cancelar</Button>
-          <Button type="submit" className="gap-2"><Save className="h-4 w-4" /> Criar OS</Button>
+          <Button type="submit" className="gap-2" disabled={loading}><Save className="h-4 w-4" /> {loading ? "Criando..." : "Criar OS"}</Button>
         </div>
       </form>
     </div>
